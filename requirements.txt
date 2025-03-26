@@ -9,3 +9,5 @@ matplotlib
 plotly
 pillow
 ultralytics
+pyglet
+pyopengl
