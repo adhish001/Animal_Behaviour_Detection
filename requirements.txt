@@ -6,3 +6,4 @@ torch
 folium
 streamlit-folium
 matplotlib
+plotly
