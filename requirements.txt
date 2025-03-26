@@ -1,13 +1,6 @@
 streamlit
-opencv-python-headless
+opencv-contrib-python-headless
 numpy
 pandas
 torch
-folium
-streamlit-folium
-matplotlib
-plotly
-pillow
 ultralytics
-pyglet
-pyopengl
