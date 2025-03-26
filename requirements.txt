@@ -7,3 +7,6 @@ folium
 streamlit-folium
 matplotlib
 plotly
+ultralytics
+Pillow
+ffmpeg-python
