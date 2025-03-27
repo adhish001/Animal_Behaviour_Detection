@@ -1,6 +1,7 @@
-streamlit
-opencv-python-headless
-numpy
-pandas
-torch
-libgl1-mesa-glx
+streamlit==1.32.2
+opencv-python-headless==4.7.0.72
+numpy==1.23.5
+pandas==2.0.1
+torch==2.0.1
+setuptools
+wheel
