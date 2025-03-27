@@ -6,5 +6,6 @@ torch==2.0.1
 folium==0.15.1
 streamlit-folium==0.15.0
 matplotlib==3.7.1
+plotly==5.18.0
 setuptools
 wheel
