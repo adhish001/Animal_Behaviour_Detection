@@ -1,5 +1,5 @@
 streamlit
-opencv-python-headless
+opencv-python
 numpy
 pandas
 torch
@@ -13,5 +13,3 @@ ffmpeg-python
 librosa
 joblib
 soundfile
-
-
