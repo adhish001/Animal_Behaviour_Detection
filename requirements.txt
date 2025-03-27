@@ -10,3 +10,6 @@ plotly==5.18.0
 setuptools
 wheel
 ultralytics
+librosa
+joblib
+soundfile
