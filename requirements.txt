@@ -1,5 +1,5 @@
 streamlit
-opencv-python-headless[full]
+opencv-python-headless
 numpy
 pandas
 torch
@@ -11,5 +11,4 @@ Pillow
 ultralytics
 librosa
 joblib
-soundfile
-libgl1-mesa-glx
+soundfile==0.12.1
