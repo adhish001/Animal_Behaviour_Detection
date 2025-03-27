@@ -12,3 +12,4 @@ joblib
 soundfile
 folium
 streamlit-folium
+ultralytics
