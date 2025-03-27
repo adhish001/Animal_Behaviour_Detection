@@ -10,6 +10,4 @@ ffmpeg-python
 librosa
 joblib
 soundfile
-ultralytics
-folium
-
+PyGObject
