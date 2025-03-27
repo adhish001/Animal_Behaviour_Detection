@@ -17,6 +17,17 @@ from PIL import Image
 from ultralytics import YOLO
 from base64 import b64encode
 
+# NEW: Import audio analysis dependencies
+import numpy as np
+import librosa
+import joblib
+import soundfile as sf
+import matplotlib.pyplot as plt
+import pandas as pd
+from datetime import datetime
+import os
+
+# [KEEP ALL EXISTING CODE FROM wildeye_app.py UP TO THE SIDEBAR SECTION]
 # Set page configuration
 st.set_page_config(
     page_title="WildEye - Animal Behavior Detection",
@@ -119,7 +130,9 @@ if 'timeline_data' not in st.session_state:
 if 'processed_video_path' not in st.session_state:
     st.session_state.processed_video_path = None
 
-# Sidebar for uploading and configuration
+
+
+# NEW: Add audio analysis configuration to sidebar
 with st.sidebar:
     st.markdown('<div class="sub-header">Upload & Configure</div>', unsafe_allow_html=True)
     
@@ -155,6 +168,265 @@ with st.sidebar:
         3: {"name": "Charging", "category": "aggressive"},
         4: {"name": "Fighting", "category": "aggressive"}
     }
+
+    
+    # Add audio upload option
+    st.markdown('<div class="sub-header">Audio Behavior Analysis</div>', unsafe_allow_html=True)
+    uploaded_audio = st.file_uploader("Upload Audio File", type=['mp3', 'wav', 'ogg'])
+    
+    # Audio analysis configuration
+    audio_segment_length = st.slider(
+        "Audio Segment Length (seconds)", 
+        min_value=1, 
+        max_value=10, 
+        value=5,
+        step=1
+    )
+    audio_confidence_threshold = st.slider(
+        "Audio Detection Confidence", 
+        min_value=0.1, 
+        max_value=1.0, 
+        value=0.6,
+        step=0.05
+    )
+
+# NEW: Audio Behavior Analysis Class (Copied from paste.txt with Streamlit-specific modifications)
+class ElephantBehaviorAnalyzer:
+    def __init__(self, audio_file, segment_length=5, sr=22050, max_pad_length=100, confidence_threshold=0.6):
+        self.audio_file = audio_file
+        self.segment_length = segment_length
+        self.sr = sr
+        self.max_pad_length = max_pad_length
+        self.confidence_threshold = confidence_threshold
+        
+        # Load audio
+        self.y, self.sr = librosa.load(audio_file, sr=self.sr)
+        
+        # Initialize results storage
+        self.predictions = []
+        self.timestamps = []
+        self.confidences = []
+        
+    def extract_features_segmented(self):
+        """Extract MFCC features from audio segments"""
+        if len(self.y) == 0:
+            st.error("❌ No audio detected!")
+            return None
+
+        segment_samples = self.segment_length * self.sr
+        total_segments = len(self.y) // segment_samples
+
+        features_list = []
+        for i in range(total_segments):
+            segment = self.y[i * segment_samples: (i + 1) * segment_samples]
+            mfccs = librosa.feature.mfcc(y=segment, sr=self.sr, n_mfcc=13)
+
+            # Pad or truncate features to maintain a fixed length
+            if mfccs.shape[1] < self.max_pad_length:
+                pad_width = self.max_pad_length - mfccs.shape[1]
+                mfccs = np.pad(mfccs, ((0, 0), (0, pad_width)), mode='constant')
+            else:
+                mfccs = mfccs[:, :self.max_pad_length]
+
+            features_list.append(mfccs.flatten())
+
+        return features_list
+
+    def predict_continuous_behavior(self):
+        """Predict behavior for each audio segment"""
+        # ASSUMPTION: Models are pre-loaded
+        model = joblib.load("elephant_behavior_model.pkl")
+        label_encoder = joblib.load("label_encoder.pkl")
+        scaler = joblib.load("scaler.pkl")
+        
+        features_list = self.extract_features_segmented()
+        
+        if features_list is None:
+            st.error("❌ No valid audio detected!")
+            return
+        
+        for i, features in enumerate(features_list):
+            features = np.array(features).reshape(1, -1)  # Reshape for model input
+            features_scaled = scaler.transform(features)  # Scale features
+
+            # Get prediction and confidence score
+            prediction = model.predict(features_scaled)[0]
+            confidence = np.max(model.predict_proba(features_scaled))
+
+            # Store results
+            start_time = i * self.segment_length
+            end_time = (i + 1) * self.segment_length
+            
+            if confidence < self.confidence_threshold:
+                behavior = "No Detection"
+            else:
+                behavior = label_encoder.inverse_transform([prediction])[0]
+            
+            self.predictions.append(behavior)
+            self.timestamps.append((start_time, end_time))
+            self.confidences.append(confidence)
+        
+        return self
+    
+    def generate_visualizations(self, output_dir=None):
+        """Generate comprehensive visualizations for Streamlit"""
+        # Create DataFrame for easier analysis
+        df = pd.DataFrame({
+            'Start Time (s)': [t[0] for t in self.timestamps],
+            'End Time (s)': [t[1] for t in self.timestamps],
+            'Behavior': self.predictions,
+            'Confidence': self.confidences
+        })
+        
+        # Color palette for visualizations
+        color_palette = {
+            'Aggressive': '#FF6B6B',
+            'Calm': '#4ECDC4', 
+            'Hunger': '#FFA726', 
+            'No Detection': '#BDBDBD'
+        }
+        
+        # Create Plotly visualizations for Streamlit
+        
+        # 1. Behavior Distribution Pie Chart
+        behavior_counts = df['Behavior'].value_counts()
+        fig_pie = px.pie(
+            names=behavior_counts.index, 
+            values=behavior_counts.values,
+            title='Audio Behavior Distribution',
+            color=behavior_counts.index,
+            color_discrete_map=color_palette
+        )
+        
+        # 2. Behavior Timeline
+        behavior_map = {b: i for i, b in enumerate(df['Behavior'].unique())}
+        df['Behavior_Numeric'] = df['Behavior'].map(behavior_map)
+        
+        fig_timeline = go.Figure()
+        fig_timeline.add_trace(go.Scatter(
+            x=df['Start Time (s)'], 
+            y=df['Behavior_Numeric'],
+            mode='lines+markers',
+            name='Behavior Timeline',
+            line=dict(color='#2C3E50', width=2),
+            marker=dict(size=8)
+        ))
+        fig_timeline.update_layout(
+            title='Audio Behavior Timeline',
+            xaxis_title='Time (seconds)',
+            yaxis_title='Behavior',
+            yaxis=dict(
+                tickmode='array',
+                tickvals=list(behavior_map.values()),
+                ticktext=list(behavior_map.keys())
+            )
+        )
+        
+        # 3. Confidence Boxplot
+        fig_confidence = go.Figure()
+        for behavior in behavior_counts.index:
+            confidence_data = df[df['Behavior'] == behavior]['Confidence']
+            fig_confidence.add_trace(go.Box(
+                y=confidence_data,
+                name=behavior,
+                marker_color=color_palette.get(behavior, 'gray')
+            ))
+        fig_confidence.update_layout(
+            title='Confidence Levels by Behavior',
+            yaxis_title='Confidence Score'
+        )
+        
+        # 4. Waveform Visualization
+        time_axis = np.linspace(0, len(self.y)/self.sr, num=len(self.y))
+        fig_waveform = go.Figure()
+        fig_waveform.add_trace(go.Scatter(
+            x=time_axis, 
+            y=self.y, 
+            mode='lines', 
+            name='Waveform',
+            line=dict(color='#2C3E50', width=1)
+        ))
+        
+        # Add colored segments for behaviors
+        for (start, end), behavior in zip(self.timestamps, self.predictions):
+            fig_waveform.add_shape(type="rect",
+                x0=start, x1=end, y0=min(self.y), y1=max(self.y),
+                fillcolor=color_palette.get(behavior, 'gray'),
+                opacity=0.2,
+                layer='below',
+                line_width=0,
+            )
+        
+        fig_waveform.update_layout(
+            title='Audio Waveform with Behavior Segments',
+            xaxis_title='Time (seconds)',
+            yaxis_title='Amplitude'
+        )
+        
+        return {
+            'pie_chart': fig_pie,
+            'timeline': fig_timeline,
+            'confidence_boxplot': fig_confidence,
+            'waveform': fig_waveform,
+            'summary_df': df
+        }
+
+# [KEEP ALL EXISTING CODE FROM THE MAIN SECTION OF wildeye_app.py]
+
+# Modify main processing section to include audio analysis
+if uploaded_file is not None or uploaded_audio is not None:
+    
+    # Existing video processing logic...
+    
+    # New audio processing section
+    if uploaded_audio is not None:
+        st.markdown('<div class="sub-header">Audio Behavior Analysis</div>', unsafe_allow_html=True)
+        
+        with st.spinner("Analyzing audio..."):
+            # Save uploaded audio to a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_audio:
+                temp_audio.write(uploaded_audio.read())
+                audio_path = temp_audio.name
+            
+            # Perform audio analysis
+            try:
+                analyzer = ElephantBehaviorAnalyzer(
+                    audio_path, 
+                    segment_length=audio_segment_length, 
+                    confidence_threshold=audio_confidence_threshold
+                )
+                analyzer.predict_continuous_behavior()
+                audio_results = analyzer.generate_visualizations()
+                
+                # Display audio analysis results
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.plotly_chart(audio_results['pie_chart'], use_container_width=True)
+                    st.plotly_chart(audio_results['confidence_boxplot'], use_container_width=True)
+                
+                with col2:
+                    st.plotly_chart(audio_results['timeline'], use_container_width=True)
+                    st.plotly_chart(audio_results['waveform'], use_container_width=True)
+                
+                # Summary table
+                st.markdown("### Audio Behavior Summary")
+                st.dataframe(audio_results['summary_df'])
+                
+                # Export options for audio data
+                export_col1, export_col2 = st.columns(2)
+                with export_col1:
+                    if st.button("Export Audio Behavior Data (CSV)"):
+                        csv = audio_results['summary_df'].to_csv(index=False)
+                        st.download_button(
+                            label="Download CSV",
+                            data=csv,
+                            file_name="wildeye_audio_behaviors.csv",
+                            mime="text/csv"
+                        )
+                
+            except Exception as e:
+                st.error(f"Error in audio analysis: {e}")
 
 # Define processing function
 def process_video(video_file, confidence_threshold):
