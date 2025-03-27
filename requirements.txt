@@ -10,3 +10,8 @@ plotly
 ultralytics
 Pillow
 ffmpeg-python
+librosa
+joblib
+soundfile
+
+
