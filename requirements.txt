@@ -10,6 +10,6 @@ ffmpeg-python
 librosa
 joblib
 soundfile
-folium
-streamlit-folium
 ultralytics
+folium
+
