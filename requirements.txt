@@ -10,3 +10,5 @@ ffmpeg-python
 librosa
 joblib
 soundfile
+folium
+streamlit-folium
