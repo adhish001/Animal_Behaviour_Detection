@@ -3,11 +3,12 @@ opencv-python-headless
 numpy
 pandas
 torch
+folium
+streamlit-folium
 matplotlib
 plotly
 Pillow
-ffmpeg-python
+ultralytics
 librosa
 joblib
 soundfile
-PyGObject
