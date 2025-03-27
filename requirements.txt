@@ -1,3 +1,6 @@
 streamlit
-pillow
+opencv-python-headless
 numpy
+pandas
+torch
+libgl1-mesa-glx
