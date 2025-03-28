@@ -1,6 +1,8 @@
 opencv-python-headless
 torch
 streamlit-folium 
+matplotlib  
+plotly 
 
 
 
