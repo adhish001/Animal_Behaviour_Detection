@@ -3,6 +3,7 @@ torch
 streamlit-folium 
 matplotlib  
 plotly 
+ultralytics
 
 
 
