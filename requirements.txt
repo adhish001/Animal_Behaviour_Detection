@@ -1,5 +1,6 @@
 opencv-python-headless
 torch
+streamlit-folium 
 
 
 
