@@ -1,13 +1,3 @@
 opencv-python-headless
-numpy
-pandas
-folium
-streamlit-folium
-matplotlib
-plotly
-Pillow
-ultralytics
-librosa
-joblib
-soundfile
-ffmpeg-python
+
+
