@@ -4,6 +4,9 @@ streamlit-folium
 matplotlib  
 plotly 
 ultralytics
+librosa  
+
+
 
 
 
