@@ -5,6 +5,8 @@ matplotlib
 plotly 
 ultralytics
 librosa  
+joblib  
+soundfile 
 
 
 
