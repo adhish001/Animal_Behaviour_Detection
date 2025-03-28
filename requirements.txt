@@ -1,8 +1,6 @@
-streamlit
 opencv-python-headless
 numpy
 pandas
-torch
 folium
 streamlit-folium
 matplotlib
@@ -12,10 +10,4 @@ ultralytics
 librosa
 joblib
 soundfile
-scikit-learn
-scipy
-requests
 ffmpeg-python
-pyarrow
-base64
-python-dateutil
